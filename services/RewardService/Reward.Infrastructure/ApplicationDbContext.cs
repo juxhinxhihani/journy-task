@@ -1,0 +1,33 @@
+using System.Data;
+using System.Reflection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Reward.Application.Abstractions.DbContext;
+using Reward.Domain.OutboxMessages;
+
+namespace Reward.Infrastructure;
+
+public class ApplicationDbContext : IdentityDbContext, IApplicationDbContext
+{
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options) : base(options)
+    {
+    }
+    
+    public DbSet<Domain.Rewards.Reward> Rewards => Set<Domain.Rewards.Reward>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    
+    public IDbTransaction BeginTransaction()
+    {
+        var transaction = Database.BeginTransaction().GetDbTransaction();
+        return transaction;
+    }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        base.OnModelCreating(builder);
+    }
+}

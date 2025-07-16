@@ -1,0 +1,30 @@
+using System.Data;
+using System.Reflection;
+using Journey.Application.Abstractions.DbContext;
+using Journey.Domain.OutboxMessages;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+
+namespace Journey.Infrastructure;
+
+public class ApplicationDbContext: IdentityDbContext, IApplicationDbContext
+{
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+    
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    
+    public IDbTransaction BeginTransaction()
+    {
+        var transaction = Database.BeginTransaction().GetDbTransaction();
+        return transaction;
+    }
+    
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        base.OnModelCreating(builder);
+    }
+}
