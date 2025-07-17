@@ -22,7 +22,6 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddCors();
 builder.Services.AddSwaggerGen(options => options.AddSwaggerAuth());
 
 builder.Services.AddApplication();
