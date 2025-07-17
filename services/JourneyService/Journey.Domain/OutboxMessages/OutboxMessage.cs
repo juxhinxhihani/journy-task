@@ -23,4 +23,14 @@ public class OutboxMessage
         Processed = true;
         ProcessedOnUtc = DateTime.UtcNow;
     }
+
+    public static OutboxMessage Create(string type, object payload)
+    {
+        var serializedPayload = System.Text.Json.JsonSerializer.Serialize(payload);
+
+        return new OutboxMessage(type, serializedPayload)
+        {
+            OccurredOnUtc = DateTime.UtcNow
+        };
+    }
 }
