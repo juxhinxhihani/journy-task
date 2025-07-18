@@ -35,9 +35,9 @@ public sealed class IdentityService(
         "Password.NotCorrect", "The specified password is not correct");
     
     // User creation methods
-    public async Task<Result<IdentityUser>> CreateIdentityUser(string email, string role)
+    public async Task<Result<User>> CreateIdentityUser(string email, string role)
     {
-        var identityUser = new IdentityUser
+        var identityUser = new User
         {
             UserName = email,
             Email = email,
@@ -49,7 +49,7 @@ public sealed class IdentityService(
         
         if (!result.Succeeded || !addRoleResult.Succeeded)
         {
-            return Result.Failure<IdentityUser>
+            return Result.Failure<User>
                 (Error.Failure("User.Failed", result.Errors.Select(e => e.Description).First()));
         }
         else

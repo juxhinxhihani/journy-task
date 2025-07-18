@@ -1,10 +1,11 @@
-using System.Data;
-using System.Reflection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Reward.Application.Abstractions.DbContext;
 using Reward.Domain.OutboxMessages;
+using System.Data;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Reward.Infrastructure;
 
@@ -28,6 +29,8 @@ public class ApplicationDbContext : IdentityDbContext, IApplicationDbContext
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        builder.Entity<OutboxMessage>().ToTable("OutboxMessages", t => t.ExcludeFromMigrations());
+
         base.OnModelCreating(builder);
     }
 }
