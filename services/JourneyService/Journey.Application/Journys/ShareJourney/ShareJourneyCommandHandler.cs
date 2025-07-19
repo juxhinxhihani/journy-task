@@ -11,14 +11,14 @@ public class ShareJourneyCommandHandler(IApplicationDbContext _context) : IComma
     {
         var journey = await _context.Journeys
             .Include(j => j.SharedWithUsers)
-            .FirstOrDefaultAsync(j => j.Id == request.id);
+            .FirstOrDefaultAsync(j => j.Id == request.Id);
 
         if (journey is null)
             return Result.Failure("Journey can not be found.");
 
         var existingShares = journey.SharedWithUsers.Select(js => js.UserId).ToHashSet();
 
-        foreach (var userId in request.users)
+        foreach (var userId in request.Users)
         {
             if (!existingShares.Contains(userId))
             {

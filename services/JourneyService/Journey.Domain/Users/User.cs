@@ -45,6 +45,11 @@ public class User : IdentityEntity
         DateOfBirth = dateOfBirth;
         Role = role;
     }
+    public void ChangeStatus(Guid userId, string email, UserStatus oldStatus, UserStatus newStatus)
+    {
+        Status = newStatus;
+        RaiseDomainEvent(new UserStatusChangedDomainEvent(userId, email, oldStatus, newStatus));
+    }
     
     public static void SendConfirmEmail(User user, string token)
     {

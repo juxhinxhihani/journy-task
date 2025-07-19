@@ -27,3 +27,11 @@ public class JourneyShareResponse : JourneysResponse
 
     public DateTime SharedAt { get; set; }
 }
+
+public class AllJourneysResponse : JourneysResponse
+{
+    public Guid UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}

@@ -12,7 +12,7 @@ public class DeleteJourneyCommandHandler(
 {
     public async Task<Result> Handle(DeleteJourneyCommand request, CancellationToken cancellationToken)
     {
-        var journey = await _journeyRepository.Get(request.id);
+        var journey = await _journeyRepository.Get(request.Id);
 
         if (journey == null || journey.IsDeleted)
         {
