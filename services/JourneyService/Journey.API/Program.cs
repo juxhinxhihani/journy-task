@@ -13,11 +13,6 @@ builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-}
-
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddControllers();
 

@@ -9,7 +9,7 @@ using System.Reflection.Emit;
 
 namespace Reward.Infrastructure;
 
-public class ApplicationDbContext : IdentityDbContext, IApplicationDbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
 
     public ApplicationDbContext(

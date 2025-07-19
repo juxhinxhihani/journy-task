@@ -16,8 +16,7 @@ namespace Journey.Application.Users.RegisterUser
 {
     internal sealed class RegisterUserCommandHandler(IUserRepository _userRepository,
                                                      IApplicationDbContext _context,
-                                                     IIdentityService _identityService,
-                                                     IActualUser _loggedUser) 
+                                                     IIdentityService _identityService) 
         : ICommandHandler<RegisterUserCommand, Guid>
     {
         public async Task<Result<Guid>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -26,12 +25,11 @@ namespace Journey.Application.Users.RegisterUser
             {
                 var user = _context.Users
                 .IgnoreQueryFilters()
-                .FirstOrDefault(x => x.Email == request.dto.Email));
+                .FirstOrDefault(x => x.Email == request.dto.Email);
 
                 if (user.IsDeleted)
                 {
                     user.UnDelete();
-
                     _userRepository.Update(user);
 
                     await _context.SaveChangesAsync(cancellationToken);
@@ -40,14 +38,17 @@ namespace Journey.Application.Users.RegisterUser
                 }
                 return Result.Failure<Guid>(UserErrors.EmailNotUnique);
             }
-        
-
+            
             using var transaction = _context.BeginTransaction();
             try
             {
-
                 var identityUserResult = await _identityService.CreateIdentityUser(
-                    request.dto.Email, UserRoles.GetRole(request.dto.Role).Value);
+                    request.dto.FirstName,
+                    request.dto.LastName,
+                    request.dto.DateOfBirth,
+                    request.dto.Email,
+                    request.dto.Password,
+                    UserRoles.GetRole(request.dto.Role).Value);
 
                 if (identityUserResult.IsFailure)
                 {
@@ -62,45 +63,13 @@ namespace Journey.Application.Users.RegisterUser
                     transaction.Rollback();
                     return Result.Failure<Guid>(UserErrors.FailedCreating);
                 }
-                bool isAdmin = false;
-                if (_loggedUser != null && (_loggedUser.Role == UserRoles.Admin || _loggedUser.Role == UserRoles.RegularUser))
-                {
-                    isAdmin = true;
-                }
-                else
-                {
-                    isAdmin = false;
-                }
-
-                var webPortalUserID = await _userRepository.GetUserId();
-
-                var user = User.Create(
-                    webPortalUserID,
-                    request.dto.FirstName,
-                    request.dto.LastName,
-                    email,
-                    new PhoneNumber(request.CreateUserDto?.PhoneNumber?.PhoneNumber ?? ""),
-                    request.CreateUserDto?.PhoneNumber?.PhonePrefix ?? "",
-                    false,
-                    false,
-                    identityUserResult.Value.Id,
-                    UserRoles.RegularUser,
-                    isAdmin,
-                    token.Value,
-                    UserStatuses.Submitted.ToString());
-
-                _userRepository.Add(user);
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                User.SendConfirmEmail(user, token.Value);
+                
+                User.SendConfirmEmail(identityUserResult.Value, token.Value);
                 await _context.SaveChangesAsync(cancellationToken);        
-        
-                await _context.SaveChangesAsync(cancellationToken);
-
+                
                 transaction.Commit();
 
-                return user.Id;
+                return identityUserResult.Value.Id;
             }
             catch (Exception)
             {

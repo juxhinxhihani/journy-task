@@ -13,8 +13,7 @@ public class OutboxPublisherWorker(
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<OutboxPublisherWorker> _logger = logger;
     private readonly int _intervalMs = config.GetValue("Outbox:PollingIntervalMs", 1000);
-
-
+    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("OutboxPublisherWorker started.");

@@ -18,6 +18,8 @@ namespace Journey.Domain.Users
         public static readonly Error FailedSorting = Error.Failure(
             "Users.FailedSorting", "Failed on sorting users.");
 
+        public static readonly Error NotLoggedIn = Error.Failure(
+            "Users.NotLoggedIn", "User is not logged in. Please log in to continue!");
         public static readonly Error NotFound = Error.NotFound(
             "Users.NotFound", "There is no user with the specified identifier");
 

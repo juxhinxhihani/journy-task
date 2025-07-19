@@ -23,6 +23,7 @@ public class JourneyShare : BaseAuditableEntity<Guid>
     [ForeignKey(nameof(User))]
     public Guid UserId { get; private set; }
     public User User { get; private set; } 
+    
 
     public static JourneyShare Create(Guid journeyId, Guid userId)
     {

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Journey.Infrastructure.Data.Repositories;
 
-public sealed class UserRepository : Repository<User, long>, IUserRepository
+public sealed class UserRepository : Repository<User, Guid>, IUserRepository
 {
     public UserRepository(ApplicationDbContext context) : base(context)
     {

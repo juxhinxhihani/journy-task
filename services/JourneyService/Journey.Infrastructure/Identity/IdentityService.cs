@@ -17,8 +17,8 @@ using MimeKit;
 namespace Journey.Infrastructure.Identity;
 
 public sealed class IdentityService(
-    UserManager<IdentityUser> _userManager,
-    SignInManager<IdentityUser> _signInManager,
+    UserManager<User> _userManager,
+    SignInManager<User> _signInManager,
     TimeProvider _timeProvider,
     IOptions<JwtConfiguration> _jwtConfiguration,
     RoleManager<IdentityRole> _roleManager,
@@ -27,27 +27,27 @@ public sealed class IdentityService(
 {
     private readonly Error Forbidden = Error.Forbidden(
         "User.Forbidden", "Email or password is incorrect");
+
     private readonly Error EmailNotConfirmed = Error.Failure(
         "User.EmailNotConfirmed", "Confirm your email to continue");
+
     private readonly Error RoleNotFound = Error.NotFound(
         "Role.NotFound", "The role specified does not exist");
+
     private readonly Error PasswordNotCorrect = Error.Forbidden(
         "Password.NotCorrect", "The specified password is not correct");
-    
-    // User creation methods
-    public async Task<Result<User>> CreateIdentityUser(string email, string role)
-    {
-        var identityUser = new User
-        {
-            UserName = email,
-            Email = email,
-            TwoFactorEnabled = true
-        };
 
-        var result = await _userManager.CreateAsync(identityUser);
-        var addRoleResult = await _userManager.AddToRoleAsync(identityUser, role);
-        
-        if (!result.Succeeded || !addRoleResult.Succeeded)
+    // User creation methods
+    public async Task<Result<User>> CreateIdentityUser(string firstName, string lastName, DateTime dateOfBirth,
+        string email, string password, string role)
+    {
+        var identityUser = User.Create(firstName, lastName, email, dateOfBirth);
+
+        var result = await _userManager.CreateAsync(identityUser, password);
+
+        result = await _userManager.AddToRoleAsync(identityUser, role);
+
+        if (!result.Succeeded)
         {
             return Result.Failure<User>
                 (Error.Failure("User.Failed", result.Errors.Select(e => e.Description).First()));
@@ -57,11 +57,11 @@ public sealed class IdentityService(
             return identityUser;
         }
     }
-    
+
     // User sign in methods
-    public async Task<Result> SignInUser(IdentityUser identityUser, string password, string role, CancellationToken cancellationToken)
+    public async Task<Result> SignInUser(User user, string password, string role, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByNameAsync(identityUser.UserName)
+        var userManager = await _userManager.FindByNameAsync(user.UserName)
             .ConfigureAwait(false);
 
         if (user == null)
@@ -69,38 +69,35 @@ public sealed class IdentityService(
             return Result.Failure("User not found");
         }
 
-        if (!await _userManager.IsEmailConfirmedAsync(identityUser)
-            .ConfigureAwait(false))
+        if (!await _userManager.IsEmailConfirmedAsync(user)
+                .ConfigureAwait(false))
         {
             return Result.Failure(EmailNotConfirmed);
         }
 
         var signOutTask = _signInManager.SignOutAsync();
         var signInTask = _signInManager.PasswordSignInAsync(user, password, false, true);
-        var tokenTask = _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+        //var tokenTask = _userManager.GenerateTwoFactorTokenAsync(user, "Email");
 
-        // Wait for all tasks to complete
-        await Task.WhenAll(signOutTask, signInTask, tokenTask)
+        await Task.WhenAll(signOutTask, signInTask)
             .ConfigureAwait(false);
 
         var signinResult = await signInTask;
-        if (!signinResult.Succeeded && !signinResult.RequiresTwoFactor)
+        if (!signinResult.Succeeded)
         {
             return Result.Failure(PasswordNotCorrect);
         }
 
         try
         {
-            var token = await tokenTask;
+            //var token = await tokenTask;
 
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10 second timeout
+            // using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            // timeoutCts.CancelAfter(TimeSpan.FromSeconds(10)); // 10 second timeout
 
-            var emailResult = await _emailService.Send2FAOtp(identityUser.Email, token) .ConfigureAwait(false);
+            //var emailResult = await _emailService.Send2FAOtp(user.Email, token) .ConfigureAwait(false);
 
-            return emailResult
-                ? Result.Success()
-                : Result.Failure(Forbidden);
+            return Result.Success();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -111,7 +108,8 @@ public sealed class IdentityService(
             return Result.Failure("There was an issue sending One-Time Passcode to your email. Please try again!");
         }
     }
-    public async Task<Result> ResendOtp(IdentityUser identityUser, CancellationToken cancellationToken)
+
+    public async Task<Result> ResendOtp(User identityUser, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByNameAsync(identityUser.UserName);
 
@@ -128,7 +126,8 @@ public sealed class IdentityService(
         else
             return Result.Failure(Forbidden);
     }
-    public string CreateJwtAccessToken(User user, IdentityUser identityUser, List<string> roles)
+
+    public string CreateJwtAccessToken(User identityUser, List<string> roles)
     {
         try
         {
@@ -139,18 +138,18 @@ public sealed class IdentityService(
             allClaims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             allClaims.AddRange(new List<Claim>()
-        {
-            new("id", user.Id.ToString()),
-            new(ClaimTypes.Name, identityUser.Id),
-            new(ClaimTypes.Email, user.Email.ToString()),
-            new("firstName", user.FirstName ?? string.Empty),
-            new("lastName", user.LastName ?? string.Empty)
-        });
+            {
+                new("id", identityUser.Id.ToString()),
+                new(ClaimTypes.Email, identityUser.Email.ToString()),
+                new("firstName", identityUser.FirstName ?? string.Empty),
+                new("lastName", identityUser.LastName ?? string.Empty)
+            });
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(allClaims),
-                Expires = _timeProvider.GetUtcNow().DateTime.Add(TimeSpan.FromMinutes(_jwtConfiguration.Value.LifeSpan)),
+                Expires =
+                    _timeProvider.GetUtcNow().DateTime.Add(TimeSpan.FromMinutes(_jwtConfiguration.Value.LifeSpan)),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256Signature)
             };
@@ -165,24 +164,24 @@ public sealed class IdentityService(
         }
         catch (Exception)
         {
-
             throw;
         }
-
     }
-    
+
     // User management methods
-    public async Task<IdentityUser?> GetUserByIdAsync(string userId)
+    public async Task<User?> GetUserByIdAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         return user;
     }
-    public async Task<IdentityUser?> GetUserByEmailAsync(string email)
+
+    public async Task<User?> GetUserByEmailAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
         return user;
     }
-    public async Task<(IdentityUser? IdentityUser, List<string?> Roles)> GetUserAndRolesByEmailAsync(string email)
+
+    public async Task<(User? IdentityUser, List<string?> Roles)> GetUserAndRolesByEmailAsync(string email)
     {
         var identityUser = await _userManager.FindByEmailAsync(email);
 
@@ -194,17 +193,16 @@ public sealed class IdentityService(
         }
 
         return (null, null);
-
-
     }
-    
+
     // Password management methods
-    public async Task<Result> ResetPasswordAsync(IdentityUser identityUser, string token, string password)
+    public async Task<Result> ResetPasswordAsync(User identityUser, string token, string password)
     {
         var result = await _userManager.ResetPasswordAsync(identityUser, token, password);
 
         return result.ToApplicationResult();
     }
+
     public async Task<Result<string>> GeneratePasswordResetTokenAsync(string email)
     {
         var identityUser = await _userManager.FindByEmailAsync(email);
@@ -217,7 +215,8 @@ public sealed class IdentityService(
         var token = await _userManager.GeneratePasswordResetTokenAsync(identityUser);
         return token;
     }
-    public async Task<Result> CheckAndChangePasswordAsync(IdentityUser identityUser, string oldPassword, string newPassword)
+
+    public async Task<Result> CheckAndChangePasswordAsync(User identityUser, string oldPassword, string newPassword)
     {
         var passwordVerifiedResult = await _userManager.CheckPasswordAsync(identityUser, oldPassword);
 
@@ -230,20 +229,22 @@ public sealed class IdentityService(
 
         return result.ToApplicationResult();
     }
-    
+
     // Email management methods
-    public async Task<Result<string>> GenerateEmailConfirmationTokenAsync(IdentityUser identityUser)
+    public async Task<Result<string>> GenerateEmailConfirmationTokenAsync(User identityUser)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
         return token;
     }
-    public async Task<Result> ConfirmEmail(IdentityUser identityUser, string token)
+
+    public async Task<Result> ConfirmEmail(User identityUser, string token)
     {
         var result = await _userManager.ConfirmEmailAsync(identityUser, token);
 
         return result.ToApplicationResult();
     }
-    public async Task<Result<string>> UpdateEmail(IdentityUser identityUser, string newEmail)
+
+    public async Task<Result<string>> UpdateEmail(User identityUser, string newEmail)
     {
         identityUser.EmailConfirmed = false;
         identityUser.Email = newEmail;
@@ -261,16 +262,15 @@ public sealed class IdentityService(
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
 
         return token;
-
     }
-    
+
     // Helper methods
     public async Task AddRoles()
     {
         var roles = new List<IdentityRole>
         {
-            new ("Admin"),
-            new ("User"),
+            new("Admin"),
+            new("User"),
         };
 
         foreach (var role in roles)

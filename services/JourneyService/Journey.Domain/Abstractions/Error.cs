@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Journey.Domain.Abstractions;
 
 public record Error
@@ -25,6 +27,7 @@ public record Error
     public static Error Conflict(string code, string description) => new Error(code, description, ErrorType.Conflict);
     public static Error Failure(string code, string description) => new Error(code, description, ErrorType.Failure);
     public static Error Forbidden(string code, string description) => new Error(code, description, ErrorType.Forbidden);
+    public static Error Gone(HttpStatusCode code) => new Error(code.ToString(), "The requested resource is no longer available", ErrorType.Gone);
 }
 
 public enum ErrorType
@@ -33,6 +36,6 @@ public enum ErrorType
     Validation = 1,
     NotFound = 2,
     Conflict = 3,
-    Forbidden = 4
-
+    Forbidden = 4,
+    Gone = 5
 }

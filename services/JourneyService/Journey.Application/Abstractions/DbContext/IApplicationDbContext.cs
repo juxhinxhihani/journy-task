@@ -10,6 +10,8 @@ public interface IApplicationDbContext
     public DbSet<OutboxMessage> OutboxMessages { get; }
     public DbSet<Domain.Journeys.Journey> Journeys { get; }
     public DbSet<User> Users { get; }
+    public DbSet<Domain.Journeys.JourneyShare> JourneyShare { get; }
+
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     IDbTransaction BeginTransaction();

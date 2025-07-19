@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Domain.Journeys.Journey> Journeys => Set<Domain.Journeys.Journey>();
+    public DbSet<Domain.Journeys.JourneyShare> JourneyShare => Set<Domain.Journeys.JourneyShare>();
 
     
     public IDbTransaction BeginTransaction()
@@ -28,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        builder.Entity<Domain.Journeys.Journey>().HasQueryFilter(j => !j.IsDeleted);
         base.OnModelCreating(builder);
     }
 }

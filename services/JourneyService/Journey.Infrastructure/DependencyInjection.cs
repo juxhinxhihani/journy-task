@@ -1,6 +1,7 @@
 using System.Text;
 using Journey.Application.Abstractions.DbContext;
 using Journey.Domain.Configuration;
+using Journey.Domain.Users;
 using Journey.Infrastructure.Data.Interceptors;
 using Journey.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,7 +27,7 @@ public static class DependencyInjection
 
             services.AddDbContext<ApplicationDbContext>((sp, options) =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseNpgsql(connectionString);
                 options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
             });
             services.AddCustomAuthorization(configuration);
@@ -86,7 +87,7 @@ public static class DependencyInjection
                });
 
             services
-                .AddIdentityCore<IdentityUser>(options =>
+                .AddIdentity<User, IdentityRole<Guid>> (options =>
                 {
                     options.SignIn.RequireConfirmedEmail = true;
                     options.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;

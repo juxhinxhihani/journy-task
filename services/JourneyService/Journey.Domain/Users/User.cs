@@ -1,35 +1,41 @@
+using Journey.Domain.Abstractions;
+using Journey.Domain.Abstractions.Interface;
 using Journey.Domain.Journeys;
+using Journey.Domain.Users.Events;
 using Microsoft.AspNetCore.Identity;
 
 namespace Journey.Domain.Users;
 
-public class User : IdentityUser<Guid>
+public class User : IdentityEntity
 {
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
+    public string FirstName { get; set; } 
+    public string LastName { get; set; } 
     public DateTime DateOfBirth { get; set; }
     public string Role { get; set; }
-    public bool IsDeleted { get; private set; } = false;
-    public bool IsActive { get; set; } = true;
+    public UserStatus Status { get; set; }
+    public bool IsLocked { get; private set; } = false;
+    public int LoginRetry { get; private set; } = 0;
+    public bool IsDeleted { get; private set; }
     public ICollection<JourneyShare> JournyShares { get; set; } = new List<JourneyShare>();
+    public ICollection<Journeys.Journey> Journys { get; set; } = new List<Journeys.Journey>();
 
-    public User(string firstName, string lastName, DateTime dateOfBirth, string role)
+    private User() { }
+
+    public User(string firstName, string lastName, string email, DateTime dateOfBirth, UserStatus userStatus) 
     {
         Id = Guid.NewGuid();
         FirstName = firstName;
         LastName = lastName;
         DateOfBirth = dateOfBirth;
-        Role = role;
-        IsActive = true;
+        Email = email;
+        Status = userStatus;
         IsDeleted = false;
     }
-
-    public static User Create(string firstName, string lastName, DateTime dateOfBirth, string role, Action<User> raiseDomainEvent)
+    
+    public static User Create(string firstName, string lastName, string email, DateTime dateOfBirth)
     {
-        var user = new User(firstName, lastName, dateOfBirth, role);
-
-        raiseDomainEvent?.Invoke(user);
-
+        var user = new User(firstName, lastName, email, dateOfBirth, UserStatus.Suspended);
+        
         return user;
     }
     public void Update(string firstName, string lastName, DateTime dateOfBirth, string role)
@@ -39,8 +45,52 @@ public class User : IdentityUser<Guid>
         DateOfBirth = dateOfBirth;
         Role = role;
     }
+    
+    public static void SendConfirmEmail(User user, string token)
+    {
+        user.RaiseDomainEvent(new UserCreatedDomainEvent(user.Email, user.Id, token));
+    }
+    public static User ConfirmEmail(User user)
+    {
+        user.Status = UserStatus.Active;
+        return user;
+    }
+    public static User ResendConfirmEmail(User user, string token)
+    {
+        user.Status = UserStatus.Suspended;
+        user.RaiseDomainEvent(new UserCreatedDomainEvent(user.Email, user.Id, token));
+
+        return user;
+    }
     public void Delete()
     {
         IsDeleted = true;
+        Status = UserStatus.Deactivated;
+    }
+    
+    public void UnlockUser()
+    {
+        IsLocked = false;
+        LoginRetry = 0;
+    }
+    public void RetryLogin(int? numberOfRetry)
+    {
+        if (numberOfRetry is null)
+        {
+            LoginRetry = 1;
+        }
+        else if (numberOfRetry == 2)
+        {
+            IsLocked = true;
+            LoginRetry = 3;
+        }
+        else
+        {
+            LoginRetry = LoginRetry + 1;
+        }
+    }
+    public void UnDelete()
+    {
+        IsDeleted = false;
     }
 }

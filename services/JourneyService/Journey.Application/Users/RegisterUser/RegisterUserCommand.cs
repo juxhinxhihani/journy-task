@@ -4,4 +4,4 @@ using System;
 
 namespace Journey.Application.Users.RegisterUser;
 
-public record RegisterUserCommand(RegisterUserDTO dto) : ICommand<Guid>;
+public record class RegisterUserCommand(RegisterUserDTO dto) : ICommand<Guid>;

@@ -38,6 +38,8 @@ public class Journey : BaseAuditableEntity<Guid>
     public string? PublicLink { get; private set; }
     public bool IsPublicLinkRevoked { get; private set; }
     
+    public bool IsDeleted { get; private set; } = false;
+    
     public ICollection<JourneyShare> SharedWithUsers { get; private set; } = new List<JourneyShare>();
 
     public static Journey Create(Guid userId, string startLocation, DateTime startTime, 
@@ -49,7 +51,8 @@ public class Journey : BaseAuditableEntity<Guid>
 
     public void ShareWithUser(Guid userId)
     {
-        if (SharedWithUsers.Any(s => s.UserId == userId)) return;
+        if (SharedWithUsers.Any(s => s.UserId == userId)) 
+            return;
         SharedWithUsers.Add(JourneyShare.Create(journeyId: Id, userId: userId));
     }
 
@@ -63,6 +66,10 @@ public class Journey : BaseAuditableEntity<Guid>
     {
         PublicLink = link;
         IsPublicLinkRevoked = false;
+    }
+    public void Delete()
+    {
+        IsDeleted = true;
     }
 
     public void RevokePublicLink()
