@@ -1,10 +1,12 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Journey.Application.Abstractions.DbContext;
 using Journey.Domain.Configuration;
 using Journey.Domain.Users;
 using Journey.Infrastructure.Data.Interceptors;
 using Journey.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,17 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using HealthChecks.UI.Client;
+using Journey.Domain.Abstractions;
+using Journey.Domain.Abstractions.Interface;
+using Journey.Domain.Email;
+using Journey.Domain.Identity.Interface;
+using Journey.Domain.Journeys.Interface;
+using Journey.Domain.OutboxMessages.Interface;
+using Journey.Infrastructure.Data.Repositories;
+using Journey.Infrastructure.Email;
+using Journey.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Quartz;
 
 namespace Journey.Infrastructure;
@@ -34,6 +47,39 @@ public static class DependencyInjection
             
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddSingleton(TimeProvider.System);
+            
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IJourneyRepository, JourneyRepository>();
+            services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
+            services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IEmailSender, EmailSender>();
+            services.AddScoped<IIdentityService, IdentityService>();
+            
+            services.AddRateLimiter(options =>
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                    return RateLimitPartition.Get(ip, key =>
+                        new TokenBucketRateLimiter(
+                            new TokenBucketRateLimiterOptions
+                            {
+                                TokenLimit = 5,
+                                TokensPerPeriod = 5,
+                                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                                QueueLimit = 0
+                            }));
+                });
+
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            });
+
+            services.AddHealthChecksUI(setup =>
+            {
+                setup.AddHealthCheckEndpoint("Basic Health", "/readyz");
+            }).AddInMemoryStorage();
             
             AppSettingsConfigHelper.SetConfiguration(configuration);
             
@@ -87,14 +133,13 @@ public static class DependencyInjection
                });
 
             services
-                .AddIdentity<User, IdentityRole<Guid>> (options =>
+                .AddIdentity<User, Role> (options =>
                 {
                     options.SignIn.RequireConfirmedEmail = true;
                     options.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
                     options.Password.RequiredLength = 12;
                 })
                 .AddSignInManager()
-                .AddRoles<IdentityRole>()
                 .AddDefaultTokenProviders()          
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services
@@ -106,6 +151,5 @@ public static class DependencyInjection
                 o.ExpireTimeSpan = TimeSpan.FromDays(1);
                 o.Cookie.SameSite = SameSiteMode.None;
             });
-
         }
 }

@@ -29,7 +29,4 @@ public interface IIdentityService
     Task<User?> GetUserByIdAsync(string userId);
     Task<User?> GetUserByEmailAsync(string email);
     Task<(User? IdentityUser, List<string?> Roles)> GetUserAndRolesByEmailAsync(string email);
-
-    //Helper methods
-    Task AddRoles();
 }

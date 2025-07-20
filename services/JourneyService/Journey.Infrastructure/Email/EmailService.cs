@@ -38,4 +38,11 @@ public class EmailService(IEmailSender _emailSender) : IEmailService
         await _emailSender.SendEmailAsync(email, subject, body);
         return true;
     }
+
+    public async Task<bool> SendStatusChange(string email, string oldStatus, string newStatus)
+    {
+        var subject = "Your status has changed";
+        var body = $"Your account status has changed from {oldStatus} to {newStatus}. If you did not request this change, please contact support.";
+        await _emailSender.SendEmailAsync(email, subject, body);
+        return true;    }
 }

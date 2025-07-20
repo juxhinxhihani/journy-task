@@ -21,7 +21,7 @@ public sealed class IdentityService(
     SignInManager<User> _signInManager,
     TimeProvider _timeProvider,
     IOptions<JwtConfiguration> _jwtConfiguration,
-    RoleManager<IdentityRole> _roleManager,
+    RoleManager<Role> _roleManager,
     IEmailService _emailService
 ) : IIdentityService
 {
@@ -262,20 +262,5 @@ public sealed class IdentityService(
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(identityUser);
 
         return token;
-    }
-
-    // Helper methods
-    public async Task AddRoles()
-    {
-        var roles = new List<IdentityRole>
-        {
-            new("Admin"),
-            new("User"),
-        };
-
-        foreach (var role in roles)
-        {
-            await _roleManager.CreateAsync(role);
-        }
     }
 }

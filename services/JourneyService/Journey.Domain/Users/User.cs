@@ -48,7 +48,7 @@ public class User : IdentityEntity
     public void ChangeStatus(Guid userId, string email, UserStatus oldStatus, UserStatus newStatus)
     {
         Status = newStatus;
-        RaiseDomainEvent(new UserStatusChangedDomainEvent(userId, email, oldStatus, newStatus));
+        RaiseDomainEvent(new UserStatusChangedDomainEvent(email, oldStatus, newStatus));
     }
     
     public static void SendConfirmEmail(User user, string token)

@@ -15,6 +15,7 @@ namespace Journey.Domain.Users
         public static readonly string Admin = "Admin";
         public static readonly string User = "User";
 
+        public static readonly string[] AllRoles = { Admin, User };
 
         public static Result<string> GetRole(string value)
         {
