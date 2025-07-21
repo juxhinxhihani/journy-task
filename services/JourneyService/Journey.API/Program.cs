@@ -82,7 +82,7 @@ app.UseExceptionHandler();
 app.UseCors("AllowOrigin");
 
 app.UseHttpsRedirection();
-
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHealthChecksUI(config =>

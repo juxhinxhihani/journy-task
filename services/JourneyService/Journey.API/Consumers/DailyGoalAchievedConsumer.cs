@@ -78,11 +78,12 @@ public class DailyGoalAchievedConsumer : BackgroundService
 
         try
         {
-            var triggeringJourney = await dbContext.Journeys.FirstOrDefaultAsync(j => j.Id == message.JourneyId);
+            var triggeringJourney = await dbContext.Journeys.Include(u => u.User).FirstOrDefaultAsync(j => j.Id == message.JourneyId);
 
             if (triggeringJourney != null && !triggeringJourney.IsDailyGoalAchieved)
             {
                 triggeringJourney.MarkDailyGoalAchieved();
+                triggeringJourney.User.DailyGoalAchieved(triggeringJourney.User, message.TotalDistance, message.AchievedOn);
                 dbContext.Journeys.Update(triggeringJourney);
                 await dbContext.SaveChangesAsync();
 

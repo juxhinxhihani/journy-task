@@ -4,9 +4,9 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Reward.Application.Abstractions.DbContext;
 using Reward.Domain.Journeys;
-using Reward.Domain.OutboxMessages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Reward.Domain.OutboxMessages;
 
 namespace Reward.Worker.Consumers;
 
@@ -136,10 +136,8 @@ public class JourneyCreatedConsumer : BackgroundService
                     TotalDistance = totalDailyDistance,
                     AchievedOn = DateTime.UtcNow
                 };
-
-                string payload = JsonSerializer.Serialize(dailyGoalEvent);
-
-                var outboxMessage = OutboxMessage.Create("DailyGoalAchieved", payload);
+                
+                var outboxMessage = OutboxMessage.Create("DailyGoalAchieved", dailyGoalEvent);
                 dbContext.OutboxMessages.Add(outboxMessage);
 
                 await dbContext.SaveChangesAsync();

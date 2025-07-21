@@ -7,4 +7,5 @@ public interface IEmailService
     Task<bool> SendResetPasswordEmail(string email, string resetLink);
     Task<bool> SendForgotPasswordEmail(string email, string resetLink);
     Task<bool> SendStatusChange(string email, string oldStatus, string newStatus);
+    Task<bool> SendDailyGoalAchive(string notificationEmail, decimal notificationTotalDistance, DateTime notificationMessageAchievedOn);
 }

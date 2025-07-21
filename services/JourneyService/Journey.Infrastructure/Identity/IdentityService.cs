@@ -41,7 +41,7 @@ public sealed class IdentityService(
     public async Task<Result<User>> CreateIdentityUser(string firstName, string lastName, DateTime dateOfBirth,
         string email, string password, string role)
     {
-        var identityUser = User.Create(firstName, lastName, email, dateOfBirth);
+        var identityUser = User.Create(firstName, lastName, email, role, dateOfBirth);
 
         var result = await _userManager.CreateAsync(identityUser, password);
 
@@ -127,7 +127,7 @@ public sealed class IdentityService(
             return Result.Failure(Forbidden);
     }
 
-    public string CreateJwtAccessToken(User identityUser, List<string> roles)
+    public string CreateJwtAccessToken(User user, List<string> roles)
     {
         try
         {
@@ -139,17 +139,17 @@ public sealed class IdentityService(
 
             allClaims.AddRange(new List<Claim>()
             {
-                new("id", identityUser.Id.ToString()),
-                new(ClaimTypes.Email, identityUser.Email.ToString()),
-                new("firstName", identityUser.FirstName ?? string.Empty),
-                new("lastName", identityUser.LastName ?? string.Empty)
+                new("id", user.Id.ToString()),
+                new(ClaimTypes.Name, user.Id.ToString()),
+                new(ClaimTypes.Email, user.Email.ToString()),
+                new("firstName", user.FirstName ?? string.Empty),
+                new("lastName", user.LastName ?? string.Empty)
             });
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(allClaims),
-                Expires =
-                    _timeProvider.GetUtcNow().DateTime.Add(TimeSpan.FromMinutes(_jwtConfiguration.Value.LifeSpan)),
+                Expires = _timeProvider.GetUtcNow().DateTime.Add(TimeSpan.FromMinutes(_jwtConfiguration.Value.LifeSpan)),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256Signature)
             };
@@ -166,6 +166,7 @@ public sealed class IdentityService(
         {
             throw;
         }
+
     }
 
     // User management methods

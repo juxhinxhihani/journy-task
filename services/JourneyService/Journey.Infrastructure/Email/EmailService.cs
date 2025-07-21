@@ -44,5 +44,16 @@ public class EmailService(IEmailSender _emailSender) : IEmailService
         var subject = "Your status has changed";
         var body = $"Your account status has changed from {oldStatus} to {newStatus}. If you did not request this change, please contact support.";
         await _emailSender.SendEmailAsync(email, subject, body);
-        return true;    }
+        return true;    
+    }
+
+    public async Task<bool> SendDailyGoalAchive(string notificationEmail, decimal notificationTotalDistance,
+        DateTime notificationMessageAchievedOn)
+    {
+        var subject = "Daily Goal Achieved";
+        var body = $"Congratulations! You have achieved your daily goal of {notificationTotalDistance} km on {notificationMessageAchievedOn:MMMM dd, yyyy}. Keep up the great work!";
+        
+        await _emailSender.SendEmailAsync(notificationEmail, subject, body).ContinueWith(t => t.IsCompletedSuccessfully);
+        return true;
+    }
 }

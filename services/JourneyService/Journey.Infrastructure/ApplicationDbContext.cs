@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Journey.Infrastructure;
 
@@ -32,6 +33,32 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>, IApplic
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         builder.Entity<Domain.Journeys.Journey>().HasQueryFilter(j => !j.IsDeleted);
         builder.Entity<Domain.Journeys.JourneyShare>().HasQueryFilter(j => !j.Journey.IsDeleted);
+        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.ClrType.GetProperties())
+            {
+                if (property.PropertyType == typeof(DateTime))
+                {
+                    builder.Entity(entityType.ClrType)
+                        .Property(property.Name)
+                        .HasConversion(dateTimeConverter);
+                }
+                else if (property.PropertyType == typeof(DateTime?))
+                {
+                    builder.Entity(entityType.ClrType)
+                        .Property(property.Name)
+                        .HasConversion(nullableDateTimeConverter);
+                }
+            }
+        }
         
         base.OnModelCreating(builder);
     }

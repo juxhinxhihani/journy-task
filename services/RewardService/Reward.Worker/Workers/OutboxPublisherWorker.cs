@@ -48,7 +48,7 @@ public class OutboxPublisherWorker : BackgroundService
 
                 var unprocessedMessages = await dbContext.OutboxMessages
                     .Where(m => !m.Processed && m.Type == "DailyGoalAchieved")
-                    .OrderBy(m => m.OccurredOn)
+                    .OrderBy(m => m.OccurredOnUtc)
                     .Take(10) 
                     .ToListAsync(stoppingToken);
 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Journey.Domain.Abstractions;
 
-public abstract class IdentityEntity : IdentityUser<Guid>
+public abstract class IdentityEntity : IdentityUser<Guid>, IEntity
 {
     private readonly List<IDomainEvent> _domainEvents = new();
 
@@ -12,9 +12,16 @@ public abstract class IdentityEntity : IdentityUser<Guid>
         Id = Guid.NewGuid();
     }
 
-    public IReadOnlyList<IDomainEvent> GetDomainEvents() => _domainEvents.ToList();
+    public IReadOnlyList<IDomainEvent> GetDomainEvents()
+    {
+        return _domainEvents.ToList();
+    }
 
-    public void ClearDomainEvents() => _domainEvents.Clear();
-
-    protected void RaiseDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
-}
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
+    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+    {
+        _domainEvents.Add(domainEvent);
+    }}

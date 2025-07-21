@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Journey.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class JourneyController(ISender _sender) : ControllerBase
@@ -147,9 +148,9 @@ namespace Journey.API.Controllers
             }
         }
         [HttpPost("share/{journeyId}", Name = "ShareJourney")]
-        public async Task<IResult> ShareJourney(Guid userId, List<Guid> UsersIds)
+        public async Task<IResult> ShareJourney(Guid journeyId, List<Guid> UsersIds)
         {
-            var command = new ShareJourneyCommand(userId, UsersIds);
+            var command = new ShareJourneyCommand(journeyId, UsersIds);
             var result = await _sender.Send(command);
             if (result.IsSuccess)
             {

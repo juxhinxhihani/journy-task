@@ -7,7 +7,7 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
 {
     public RegisterUserCommandValidator()
     {
-        RuleFor(x => x.dto.FirstName).NotEmpty().EmailAddress();
+        RuleFor(x => x.dto.FirstName).NotEmpty();
         RuleFor(x => x.dto.LastName).NotEmpty();
         RuleFor(x => x.dto.DateOfBirth).NotEmpty();
         RuleFor(x => x.dto.Role).NotEmpty();

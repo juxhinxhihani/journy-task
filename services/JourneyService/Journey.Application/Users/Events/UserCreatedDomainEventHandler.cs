@@ -9,9 +9,7 @@ namespace Journey.Application.Users.Events;
 
 internal sealed class UserCreatedDomainEventHandler(
     IEmailService _emailService,
-    ILogger<UserCreatedDomainEventHandler> _logger,
-    IUserRepository _userRepository,
-    IApplicationDbContext _applicationDbContext) : INotificationHandler<UserCreatedDomainEvent>
+    ILogger<UserCreatedDomainEventHandler> _logger) : INotificationHandler<UserCreatedDomainEvent>
 {
 
     public async Task Handle(UserCreatedDomainEvent notification, CancellationToken cancellationToken)

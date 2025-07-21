@@ -20,7 +20,7 @@ public static class DependencyInjection
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
         });
         
-        services.Configure<RabbitMQOptions>(configuration.GetSection("RabbitMQ"));
+        services.Configure<RabbitMQOptions>(configuration.GetSection("RabbitMQ")); 
         
         return services;
     }

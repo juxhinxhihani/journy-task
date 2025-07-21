@@ -21,20 +21,23 @@ public class User : IdentityEntity
 
     private User() { }
 
-    public User(string firstName, string lastName, string email, DateTime dateOfBirth, UserStatus userStatus) 
+    public User(string firstName, string lastName, string email, string role, DateTime dateOfBirth, UserStatus userStatus, string securityStamp) 
     {
         Id = Guid.NewGuid();
         FirstName = firstName;
         LastName = lastName;
         DateOfBirth = dateOfBirth;
         Email = email;
+        UserName = email;
+        Role = role;
         Status = userStatus;
         IsDeleted = false;
+        SecurityStamp = securityStamp;
     }
     
-    public static User Create(string firstName, string lastName, string email, DateTime dateOfBirth)
+    public static User Create(string firstName, string lastName, string email, string role,DateTime dateOfBirth)
     {
-        var user = new User(firstName, lastName, email, dateOfBirth, UserStatus.Suspended);
+        var user = new User(firstName, lastName, email, role, dateOfBirth, UserStatus.Suspended, Guid.NewGuid().ToString());
         
         return user;
     }
@@ -97,5 +100,10 @@ public class User : IdentityEntity
     public void UnDelete()
     {
         IsDeleted = false;
+    }
+
+    public void DailyGoalAchieved(User user, decimal totalDistance, DateTime messageAchievedOn)
+    {
+        user.RaiseDomainEvent(new DailyGoalAchievedDomain(user.Email, totalDistance, messageAchievedOn));
     }
 }

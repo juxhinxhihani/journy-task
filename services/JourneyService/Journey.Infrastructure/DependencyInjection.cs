@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Journey.Application.Abstractions.DbContext;
@@ -37,6 +38,7 @@ public static class DependencyInjection
                 throw new ArgumentNullException(nameof(configuration));
 
             services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
+            services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 
             services.AddDbContext<ApplicationDbContext>((sp, options) =>
             {
@@ -106,45 +108,47 @@ public static class DependencyInjection
             });
 
             services
-               .AddAuthentication(options =>
-               {
-                   options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                   options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                   options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-               })        
-               .AddJwtBearer(options =>
-               {
-                   options.SaveToken = true;
-                   options.TokenValidationParameters = new TokenValidationParameters
-                   {
-                       ValidateIssuerSigningKey = true,
-                       IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret)),
-                       ValidateIssuer = false,
-                       ValidateAudience = false,
-                       RequireExpirationTime = true,
-                       ValidateLifetime = true,
-                       ClockSkew = TimeSpan.Zero
-                   };
-               });
+                .AddAuthentication(options =>
+                {
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false; 
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret)),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        RequireExpirationTime = true,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+
+                        NameClaimType = ClaimTypes.NameIdentifier,      
+                        RoleClaimType = ClaimTypes.Role 
+                    };
+                });
 
             services
                 .AddIdentity<User, Role> (options =>
                 {
                     options.SignIn.RequireConfirmedEmail = true;
                     options.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
-                    options.Password.RequiredLength = 12;
+                    options.Password.RequiredLength = 8;
                 })
-                .AddSignInManager()
                 .AddDefaultTokenProviders()          
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+            
             services
                 .Configure<JwtConfiguration>(configuration.GetSection(nameof(JwtConfiguration)));
 
-            services.ConfigureApplicationCookie(o =>
-            {
-                o.Cookie.HttpOnly = false;
-                o.ExpireTimeSpan = TimeSpan.FromDays(1);
-                o.Cookie.SameSite = SameSiteMode.None;
-            });
+            
+            services
+                .Configure<JwtConfiguration>(configuration.GetSection(nameof(JwtConfiguration)));
+            
         }
 }
