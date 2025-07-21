@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using CorrelationId.DependencyInjection;
 using Journey.Application.Abstractions.DbContext;
 using Journey.Domain.Configuration;
 using Journey.Domain.Users;
@@ -59,6 +60,10 @@ public static class DependencyInjection
             services.AddScoped<IEmailSender, EmailSender>();
             services.AddScoped<IIdentityService, IdentityService>();
             
+            
+            services.Configure<RateLimitingOptions>(configuration.GetSection("RateLimiting"));
+
+            var rateLimitingOptions = configuration.GetSection("RateLimiting") .Get<RateLimitingOptions>();
             services.AddRateLimiter(options =>
             {
                 options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -66,20 +71,27 @@ public static class DependencyInjection
                     var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
                     return RateLimitPartition.Get(ip, key =>
-                        new TokenBucketRateLimiter(
-                            new TokenBucketRateLimiterOptions
-                            {
-                                TokenLimit = 5,
-                                TokensPerPeriod = 5,
-                                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                                QueueLimit = 0
-                            }));
+                        new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+                        {
+                            TokenLimit = rateLimitingOptions.TokenLimit,
+                            TokensPerPeriod = rateLimitingOptions.TokensPerPeriod,
+                            ReplenishmentPeriod = TimeSpan.FromSeconds(rateLimitingOptions.ReplenishmentPeriodSeconds),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
                 });
-
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             });
 
+            services.AddDefaultCorrelationId(options =>
+            {
+                options.AddToLoggingScope = true;
+                options.EnforceHeader = false;
+                options.IncludeInResponse = true;
+                options.RequestHeader = "X-Correlation-ID";
+                options.ResponseHeader = "X-Correlation-ID";
+            });
+            
             services.AddHealthChecksUI(setup =>
             {
                 setup.AddHealthCheckEndpoint("Basic Health", "/readyz");
@@ -145,10 +157,7 @@ public static class DependencyInjection
             
             services
                 .Configure<JwtConfiguration>(configuration.GetSection(nameof(JwtConfiguration)));
-
-            
             services
                 .Configure<JwtConfiguration>(configuration.GetSection(nameof(JwtConfiguration)));
-            
         }
 }
