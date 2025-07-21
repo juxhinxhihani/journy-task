@@ -9,6 +9,7 @@ using Journey.Application;
 using Journey.Domain.Abstractions.Interface;
 using Journey.Infrastructure;
 using Journey.Infrastructure.Extensions;
+using Journey.Infrastructure.Messaging;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
@@ -40,7 +41,11 @@ builder.Services.AddSwaggerGen(options => options.AddSwaggerAuth());
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<IOutboxPublisher, RabbitMQPublisher>();
 builder.Services.AddHostedService<OutboxPublisherWorker>();
+
+// Add DailyGoalAchieved consumer to Journey service
+builder.Services.AddHostedService<Journey.API.Consumers.DailyGoalAchievedConsumer>();
 
 builder.Services.AddSignalR();
 builder.Services.AddDefaultCorrelationId(options =>

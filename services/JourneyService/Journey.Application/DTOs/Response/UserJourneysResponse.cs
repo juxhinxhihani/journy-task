@@ -11,7 +11,7 @@ public class UserJourneysResponse
     public DateTime ArrivalTime { get; set; }
 
     public string TransportationType { get; set; } = string.Empty;
-    public double RouteDistanceKm { get; set; }
+    public decimal RouteDistanceKm { get; set; }
 
     public bool IsDailyGoalAchieved { get; set; }
 

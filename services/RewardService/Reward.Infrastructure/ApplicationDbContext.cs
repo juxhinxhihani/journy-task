@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Reward.Application.Abstractions.DbContext;
 using Reward.Domain.OutboxMessages;
+using Reward.Domain.Journeys;
 using System.Data;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     
     public DbSet<Domain.Rewards.Reward> Rewards => Set<Domain.Rewards.Reward>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<Journey> Journeys => Set<Journey>();
     
     public IDbTransaction BeginTransaction()
     {
@@ -30,6 +31,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         builder.Entity<OutboxMessage>().ToTable("OutboxMessages", t => t.ExcludeFromMigrations());
+        builder.Entity<Journey>().ToTable("Journeys", t => t.ExcludeFromMigrations());
 
         base.OnModelCreating(builder);
     }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Journey.Domain.Abstractions;
+using Journey.Domain.Events;
 using Journey.Domain.Users;
 
 namespace Journey.Domain.Journeys;
@@ -8,7 +9,7 @@ public class Journey : BaseAuditableEntity<Guid>
 {
     public Journey() { }
     public Journey(Guid id) : base(id) { }
-    public Journey(Guid userId, string startLocation, DateTime startTime, string arrivalLocation, DateTime arrivalTime, string transportationType, double routeDistanceKm)
+    public Journey(Guid userId, string startLocation, DateTime startTime, string arrivalLocation, DateTime arrivalTime, string transportationType, decimal routeDistanceKm)
     {
         Id = Guid.NewGuid();
         UserId = userId;
@@ -31,7 +32,7 @@ public class Journey : BaseAuditableEntity<Guid>
     public DateTime ArrivalTime { get; private set; }
 
     public string TransportationType { get; private set; }
-    public double RouteDistanceKm { get; private set; }
+    public decimal RouteDistanceKm { get; private set; }
 
     public bool IsDailyGoalAchieved { get; private set; }
 
@@ -44,7 +45,7 @@ public class Journey : BaseAuditableEntity<Guid>
 
     public static Journey Create(Guid userId, string startLocation, DateTime startTime, 
                                     string arrivalLocation, DateTime arrivalTime, 
-                                    string transportationType, double routeDistanceKm)
+                                    string transportationType, decimal routeDistanceKm)
     {
         return new Journey(userId, startLocation, startTime, arrivalLocation, arrivalTime, transportationType, routeDistanceKm);
     }
@@ -80,5 +81,20 @@ public class Journey : BaseAuditableEntity<Guid>
     public void MarkDailyGoalAchieved()
     {
         IsDailyGoalAchieved = true;
+    }
+    public void MarkDailyGoalAchieved(decimal totalDailyDistance)
+    {
+        if (!IsDailyGoalAchieved)
+        {
+            IsDailyGoalAchieved = true;
+            
+            RaiseDomainEvent(new DailyGoalAchievedEvent
+            {
+                UserId = UserId,
+                JourneyId = Id,
+                TotalDistance = totalDailyDistance,
+                AchievedOn = DateTime.UtcNow
+            });
+        }
     }
 }

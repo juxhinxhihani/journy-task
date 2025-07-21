@@ -1,6 +1,6 @@
 using System.Text;
 using Journey.Domain.Abstractions.Interface;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Journey.Domain.OutboxMessages;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using IModel = RabbitMQ.Client.IModel;
@@ -28,6 +28,16 @@ public class RabbitMQPublisher : IOutboxPublisher
         _channel = _connection.CreateModel();
     }
 
+    public Task PublishAsync(OutboxMessage message)
+    {
+        _channel.QueueDeclare(queue: message.Type, durable: true, exclusive: false, autoDelete: false);
+
+        var body = Encoding.UTF8.GetBytes(message.Payload);
+        _channel.BasicPublish(exchange: "", routingKey: message.Type, basicProperties: null, body: body);
+
+        return Task.CompletedTask;
+    }
+
     public Task PublishAsync(string eventType, string payload)
     {
         _channel.QueueDeclare(queue: eventType, durable: true, exclusive: false, autoDelete: false);
@@ -36,5 +46,11 @@ public class RabbitMQPublisher : IOutboxPublisher
         _channel.BasicPublish(exchange: "", routingKey: eventType, basicProperties: null, body: body);
 
         return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _channel?.Close();
+        _connection?.Close();
     }
 }

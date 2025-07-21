@@ -37,11 +37,16 @@ internal sealed class CreateJourneyCommandHandler(
             _context.Journeys.Add(journey);
             await _context.SaveChangesAsync(cancellationToken);
 
-            var outboxMessage = OutboxMessage.Create(
-                "JourneyCreated",
-                new { JourneyId = journey.Id, UserId = userId }
-            );
-            _outboxMessageRepository.Add(outboxMessage);
+            var journeyCreatedEvent = new
+            {
+                UserId = userId,
+                JourneyId = journey.Id,
+                Distance = (decimal)journey.RouteDistanceKm,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var outboxMessage = OutboxMessage.Create("JourneyCreated", journeyCreatedEvent);
+            _context.OutboxMessages.Add(outboxMessage);
             await _context.SaveChangesAsync(cancellationToken);
 
             return Result.Success(journey.Id);

@@ -7,5 +7,5 @@ public class CreateJourneyDTO
     public string ArrivalLocation { get; set; } 
     public DateTime ArrivalTime { get; set; }
     public string TransportationType { get; set; } 
-    public double RouteDistanceKm { get; set; }
+    public decimal RouteDistanceKm { get; set; }
 }

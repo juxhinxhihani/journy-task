@@ -14,7 +14,6 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using HealthChecks.UI.Client;
 using Journey.Domain.Abstractions;
 using Journey.Domain.Abstractions.Interface;
 using Journey.Domain.Email;
@@ -24,6 +23,7 @@ using Journey.Domain.OutboxMessages.Interface;
 using Journey.Infrastructure.Data.Repositories;
 using Journey.Infrastructure.Email;
 using Journey.Infrastructure.Identity;
+using Journey.Infrastructure.Messaging;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Quartz;
 
@@ -44,6 +44,8 @@ public static class DependencyInjection
                 options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
             });
             services.AddCustomAuthorization(configuration);
+            
+            services.Configure<RabbitMQOptions>(configuration.GetSection("RabbitMQ"));
             
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddSingleton(TimeProvider.System);
@@ -106,17 +108,10 @@ public static class DependencyInjection
             services
                .AddAuthentication(options =>
                {
-                   options.DefaultSignInScheme = IdentityConstants.TwoFactorUserIdScheme;
                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                })        
-               .AddCookie(IdentityConstants.TwoFactorUserIdScheme, o =>
-               {
-                   o.Cookie.HttpOnly = false;
-                   o.ExpireTimeSpan = TimeSpan.FromDays(1);
-                   o.Cookie.SameSite = SameSiteMode.None;
-               }).AddCookie(IdentityConstants.ApplicationScheme)
                .AddJwtBearer(options =>
                {
                    options.SaveToken = true;
